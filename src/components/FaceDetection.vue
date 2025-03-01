@@ -37,7 +37,7 @@
     // 固定の座標に赤枠を描画
     ctx.strokeStyle = "red";
     ctx.lineWidth = 2;
-    // ctx.strokeRect(100, 100, 200, 300);
+    ctx.strokeRect(100, 100, 200, 300);
 
 //   console.log("固定枠を描画しました", ctx);
     // const updateCanvasSize = () => {
