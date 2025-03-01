@@ -31,14 +31,6 @@
 
     console.log("Canvasサイズ:", canvas.value.width, canvas.value.height);
 
-    // 背景をクリア
-    ctx.clearRect(0, 0, canvas.value.width, canvas.value.height);
-
-    // 固定の座標に赤枠を描画
-    ctx.strokeStyle = "red";
-    ctx.lineWidth = 2;
-    ctx.strokeRect(100, 100, 200, 300);
-
 //   console.log("固定枠を描画しました", ctx);
     // const updateCanvasSize = () => {
     //   if (!video.value || !canvas.value) return;
@@ -46,30 +38,29 @@
     //   canvas.value.height = video.value.videoHeight;
     // };
   
-    // // ループ処理で額の枠を描画
-    // const update = async () => {
-    //   if (!video.value || !canvas.value) return;
+    // ループ処理で額の枠を描画
+    const update = async () => {
+      if (!video.value || !canvas.value) return;
   
     //   updateCanvasSize(); // 動画サイズが変わったらCanvasを更新
-    //   ctx.clearRect(0, 0, canvas.value.width, canvas.value.height); // 画面をクリア
+    
+    const forehead = await getForeheadRegion(video.value);
+    if (forehead) {
+        console.log("額の座標:", forehead); // デバッグ用ログ
+        ctx.clearRect(0, 0, canvas.value.width, canvas.value.height); // 画面をクリア
+        ctx.strokeStyle = "red"; // 枠の色
+        ctx.lineWidth = 2;
+        ctx.strokeRect(forehead.x, forehead.y, forehead.width, forehead.height);
+        console.log('ctx', ctx)
+    } else {
+        console.warn("額の座標が取得できません");
+    }
   
-    //   const forehead = await getForeheadRegion(video.value);
-    //   if (forehead) {
-    //     console.log("額の座標:", forehead); // デバッグ用ログ
-    //     ctx.strokeStyle = "red"; // 枠の色
-    //     ctx.lineWidth = 2;
-    //     // ctx.strokeRect(forehead.x, forehead.y, forehead.width, forehead.height);
-    //     ctx.strokeRect(100, 100, 200, 100); // 固定の座標 (x, y, width, height)
-    //     ctx.fillStyle = 'red'
-    //     console.log('ctx', ctx)
-    //   } else {
-    //     console.warn("額の座標が取得できません");
-    //   }
+      animationFrameId = requestAnimationFrame(update); // 次のフレームへ
+
+    };
   
-    //   animationFrameId = requestAnimationFrame(update); // 次のフレームへ
-    // };
-  
-    // update();
+    update();
   };
   
   /**

@@ -31,7 +31,7 @@ export const getForeheadRegion = async (videoElement: HTMLVideoElement) => {
   // 額の領域（両目の間の少し上の位置）
   return {
     x: landmarks[21].x, // 左目の上
-    y: landmarks[21].y - 20, // 少し上にずらす
+    y: landmarks[21].y, // 少し上にずらす
     width: landmarks[22].x - landmarks[21].x, // 両目の間の幅
     height: 20, // 縦幅
   };
