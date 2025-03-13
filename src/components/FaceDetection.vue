@@ -1,5 +1,7 @@
 <template>
   <div class="container">
+    <button @click="startCamera">カメラ開始</button>
+    <button @click="stopCamera">カメラ停止</button>
     <video ref="video" autoplay playsinline></video>
     <canvas ref="canvas"></canvas>
   </div>
@@ -16,6 +18,7 @@ const video = ref<HTMLVideoElement | null>(null);
 const canvas = ref<HTMLCanvasElement | null>(null);
 let animationFrameId: number | null = null;
 const rgbValues: number[] = [];
+let isCameraActive = false;
 
 /**
  * 額の枠を描画する関数
@@ -36,15 +39,13 @@ const drawForeheadBox = async () => {
   const offscreenCtx = offscreenCanvas.getContext("2d");
 
   const update = async () => {
-    if (!video.value || !canvas.value || !offscreenCtx) return;
+    if (!video.value || !canvas.value || !offscreenCtx || !isCameraActive) return;
 
-    // 額の領域を取得
     const forehead = await getForeheadRegion(video.value);
     if (forehead) {
       offscreenCtx.clearRect(0, 0, offscreenCanvas.width, offscreenCanvas.height);
       offscreenCtx.drawImage(video.value, 0, 0, offscreenCanvas.width, offscreenCanvas.height);
 
-      // ROIの中央部分のみを取得
       const margin = 5;
       const roiX = forehead.x + margin;
       const roiY = forehead.y + margin;
@@ -64,14 +65,12 @@ const drawForeheadBox = async () => {
 
       if (rgbValues.length > 300) rgbValues.shift();
 
-      // `getHeartRateFromROI` で脈拍推定
       if (rgbValues.length >= 150) {
         const bpm = getHeartRateFromROI(rgbValues);
         console.log(`推定脈拍: ${Math.round(bpm)} bpm`);
         emit("updateHeartRate", Math.round(bpm));
       }
 
-      // メインキャンバスに描画
       ctx.clearRect(0, 0, canvas.value.width, canvas.value.height);
       ctx.strokeStyle = "red";
       ctx.lineWidth = 2;
@@ -86,18 +85,56 @@ const drawForeheadBox = async () => {
   update();
 };
 
-onMounted(async () => {
-  await loadModels(); // FaceAPIのモデルをロード
-  if (video.value) {
-    video.value.srcObject = await navigator.mediaDevices.getUserMedia({ video: true });
-    video.value.addEventListener("loadeddata", drawForeheadBox);
+/**
+ * カメラを開始する関数
+ */
+const startCamera = async () => {
+  if (!video.value) return;
+
+  try {
+    const stream = await navigator.mediaDevices.getUserMedia({ video: true });
+    video.value.srcObject = stream;
+    video.value.play().then(() => {
+      isCameraActive = true;
+      drawForeheadBox();
+    }).catch(err => {
+      console.error("動画再生エラー:", err);
+    });
+  } catch (error) {
+    console.error("カメラの取得に失敗しました", error);
   }
+};
+
+/**
+ * カメラを停止する関数
+ */
+ const stopCamera = () => {
+  if (!video.value || !video.value.srcObject) return;
+
+  const stream = video.value.srcObject as MediaStream;
+  stream.getTracks().forEach(track => track.stop());
+
+  video.value.srcObject = null;
+  isCameraActive = false;
+
+  if (animationFrameId !== null) {
+    cancelAnimationFrame(animationFrameId);
+    animationFrameId = null;
+  }
+
+  // 🔹 キャンバスの内容をクリア
+  const ctx = canvas.value?.getContext("2d");
+  if (ctx) {
+    ctx.clearRect(0, 0, canvas.value!.width, canvas.value!.height);
+  }
+};
+
+onMounted(async () => {
+  await loadModels();
 });
 
 onUnmounted(() => {
-  if (animationFrameId !== null) {
-    cancelAnimationFrame(animationFrameId);
-  }
+  stopCamera();
 });
 </script>
 
@@ -109,5 +146,12 @@ video, canvas {
   position: absolute;
   top: 0;
   left: 0;
+}
+button {
+  position: relative;
+  z-index: 100;
+  margin: 10px;
+  padding: 8px 16px;
+  cursor: pointer;
 }
 </style>
