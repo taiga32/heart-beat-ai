@@ -8,7 +8,7 @@
 <script setup lang="ts">
 import { ref, onMounted, onUnmounted, defineEmits } from "vue";
 import { loadModels, getForeheadRegion } from "../utils/faceDetection";
-import { detectPeaks } from "../utils/getHeartRate";
+import { getHeartRateFromROI } from "../utils/getHeartRate";
 
 const emit = defineEmits(["updateHeartRate"]);
 
@@ -28,11 +28,8 @@ const drawForeheadBox = async () => {
     return;
   }
 
-  // Canvasサイズをvideoのサイズに設定
   canvas.value.width = video.value?.videoWidth || 640;
   canvas.value.height = video.value?.videoHeight || 480;
-
-  console.log("Canvasサイズ:", canvas.value.width, canvas.value.height);
 
   const rgbValues: number[] = [];
 
@@ -41,37 +38,36 @@ const drawForeheadBox = async () => {
 
     const forehead = await getForeheadRegion(video.value);
     if (forehead) {
-      console.log("額の座標:", forehead);
       ctx.clearRect(0, 0, canvas.value.width, canvas.value.height);
       ctx.strokeStyle = "red";
       ctx.lineWidth = 2;
       ctx.strokeRect(forehead.x, forehead.y, forehead.width, forehead.height);
 
-      const imageData = ctx.getImageData(
-        forehead.x,
-        forehead.y,
-        forehead.width,
-        forehead.height
-      );
+      // ROIの中央部分のみを取得
+      const margin = 5;
+      const roiX = forehead.x + margin;
+      const roiY = forehead.y + margin;
+      const roiWidth = forehead.width - margin * 2;
+      const roiHeight = forehead.height - margin * 2;
+
+      const imageData = ctx.getImageData(roiX, roiY, roiWidth, roiHeight);
       const data = imageData.data;
 
       let gTotal = 0;
       for (let i = 0; i < data.length; i += 4) {
-        gTotal += data[i + 1];
+        gTotal += data[i + 1]; // Gチャネル
       }
 
       const gAvg = gTotal / (data.length / 4);
       rgbValues.push(gAvg);
 
       if (rgbValues.length > 300) rgbValues.shift();
-
+　　　　　　　　　　　　　　　　　　　
+      // `getHeartRateFromROI` で脈拍推定
       if (rgbValues.length >= 150) {
-        const peaks = detectPeaks(rgbValues);
-        const bpm = (peaks.length / (rgbValues.length / 30)) * 60;
-        const roundedBpm = Math.round(bpm);
-
-        console.log(`推定脈拍: ${roundedBpm} bpm`);
-        emit("updateHeartRate", roundedBpm); // 脈拍をemit
+        const bpm = getHeartRateFromROI(rgbValues);
+        console.log(`推定脈拍: ${Math.round(bpm)} bpm`);
+        emit("updateHeartRate", Math.round(bpm));
       }
     } else {
       console.warn("額の座標が取得できません");
@@ -82,6 +78,7 @@ const drawForeheadBox = async () => {
 
   update();
 };
+
 
 /**
  * カメラを起動し、映像を取得

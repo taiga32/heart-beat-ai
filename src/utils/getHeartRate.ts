@@ -1,52 +1,40 @@
-export const getHeartRateFromROI = (canvas: HTMLCanvasElement, region: { x: number; y: number; width: number; height: number }) => {
-    const ctx = canvas.getContext("2d");
-    if (!ctx) {
-      console.error("Canvasのコンテキストが取得できません");
-      return;
-    }
+export const getHeartRateFromROI = (rgbValues: number[]): number => {
+    // 正規化
+    const minVal = Math.min(...rgbValues);
+    const maxVal = Math.max(...rgbValues);
+    const normalizedValues = rgbValues.map(val => (val - minVal) / (maxVal - minVal + 1));
   
-    const rgbValues: number[] = [];
+    // バンドパスフィルタ
+    const filteredValues = bandpassFilter(normalizedValues, 0.8, 3.0, 30);
   
-    const captureFrame = () => {
-      const imageData = ctx.getImageData(region.x, region.y, region.width, region.height);
-      const data = imageData.data; // RGBA配列
-      let rTotal = 0, gTotal = 0, bTotal = 0;
+    // ピーク検出
+    const peaks = detectPeaks(filteredValues);
   
-      // RGB値を集計
-      for (let i = 0; i < data.length; i += 4) {
-        rTotal += data[i];
-        gTotal += data[i + 1];
-        bTotal += data[i + 2];
-      }
+    // BPM計算
+    const bpm = (peaks.length / (filteredValues.length / 30)) * 60;
   
-      // RGBの平均値
-      const rAvg = rTotal / (data.length / 4);
-      const gAvg = gTotal / (data.length / 4);
-      const bAvg = bTotal / (data.length / 4);
-  
-      // Gチャネルを使用（最も安定した脈拍信号が得られる）
-      rgbValues.push(gAvg);
-  
-      if (rgbValues.length > 300) rgbValues.shift(); // データが多すぎる場合は古いデータを削除
-  
-      requestAnimationFrame(captureFrame);
-    };
-  
-    captureFrame();
-  
-    // シンプルなピーク検出
-    setInterval(() => {
-      if (rgbValues.length < 150) return;
-  
-      const peaks = detectPeaks(rgbValues);
-      const bpm = (peaks.length / (rgbValues.length / 30)) * 60; // 30fpsベースの変換
-      console.log(`推定脈拍: ${Math.round(bpm)} bpm`);
-    }, 1000);
+    return bpm;
   };
   
-  // ピーク検出関数 (シンプルなロジック)
-  export const detectPeaks = (data: number[]) => {
-    const peaks: number[] = [];
+  /**
+   * バンドパスフィルタ
+   */
+  const bandpassFilter = (signal: number[], lowCut: number, highCut: number, fps: number): number[] => {
+    const nyquist = 0.5 * fps;
+    const low = lowCut / nyquist;
+    const high = highCut / nyquist;
+  
+    return signal.map((val, idx) => {
+      const t = idx / fps;
+      return val * (Math.sin(2 * Math.PI * high * t) - Math.sin(2 * Math.PI * low * t));
+    });
+  };
+  
+  /**
+   * ピーク検出
+   */
+  const detectPeaks = (data: number[]): number[] => {
+    const peaks = [];
     for (let i = 1; i < data.length - 1; i++) {
       if (data[i] > data[i - 1] && data[i] > data[i + 1]) {
         peaks.push(i);
