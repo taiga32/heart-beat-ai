@@ -1,4 +1,5 @@
 export const getHeartRateFromROI = (rgbValues: number[]): number => {
+    console.log('RGB', rgbValues)
     // 正規化
     const minVal = Math.min(...rgbValues);
     const maxVal = Math.max(...rgbValues);

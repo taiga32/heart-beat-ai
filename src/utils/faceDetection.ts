@@ -45,11 +45,11 @@ export const getForeheadRegion = async (videoElement: HTMLVideoElement) => {
   const foreheadY = (leftEyebrow.y + rightEyebrow.y) / 2 - 30; // 少し上にずらす
 
   // 座標を左右反転
-  const videoWidth = videoElement.videoWidth;
-  const flippedForeheadX = videoWidth - foreheadX;
+  // const videoWidth = videoElement.videoWidth;
+  // const flippedForeheadX = videoWidth - foreheadX;
 
   return {
-    x: flippedForeheadX - 50, // 額の中心から左右に広げる
+    x: foreheadX - 50, // 額の中心から左右に広げる
     y: foreheadY - 20, // 額の中心から上下に広げる
     width: 100, // 額の幅
     height: 40, // 額の高さ
