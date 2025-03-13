@@ -1,9 +1,16 @@
 <script setup lang="ts">
-import CameraView from './CameraView.vue';
-import FaceDetection from './FaceDetection.vue';
-</script>
+import { ref } from "vue";
+import FaceDetection from "./FaceDetection.vue";
 
+const heartRate = ref<number | null>(null);
+
+const handleHeartRateUpdate = (bpm: number) => {
+  heartRate.value = bpm;
+};
+</script>
 <template>
-  <!-- <CameraView></CameraView> -->
-  <FaceDetection />
+  <div>
+    <FaceDetection @updateHeartRate="handleHeartRateUpdate" />
+    <p>推定脈拍: {{ heartRate }} bpm</p>
+  </div>
 </template>
