@@ -1,12 +1,3 @@
-<template>
-  <div class="container">
-    <button @click="startCamera">カメラ開始</button>
-    <button @click="stopCamera">カメラ停止</button>
-    <video ref="video" autoplay playsinline></video>
-    <canvas ref="canvas"></canvas>
-  </div>
-</template>
-
 <script setup lang="ts">
 import { ref, onMounted, onUnmounted, defineEmits } from "vue";
 import { loadModels, getForeheadRegion } from "../utils/faceDetection";
@@ -137,21 +128,65 @@ onUnmounted(() => {
   stopCamera();
 });
 </script>
+<template>
+  <div class="container">
+    <div class="video-wrapper">
+      <video ref="video" autoplay playsinline></video>
+      <canvas ref="canvas"></canvas>
+    </div>
+
+    <div class="controls">
+      <button @click="startCamera">カメラ開始</button>
+      <button @click="stopCamera">カメラ停止</button>
+    </div>
+  </div>
+</template>
 
 <style scoped>
 .container {
-  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: center; /* 中央配置 */
+  gap: 16px; /* 要素間の余白 */
 }
+
+.video-wrapper {
+  position: relative;
+  width: 640px; /* ビデオの幅を固定 */
+  height: 480px; /* ビデオの高さを固定 */
+  border: 2px solid #ddd; /* ビデオ枠の視認性を向上 */
+  border-radius: 12px;
+  overflow: hidden; /* はみ出し防止 */
+  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.2); /* 立体感 */
+}
+
 video, canvas {
   position: absolute;
   top: 0;
   left: 0;
 }
+
+.controls {
+  display: flex;
+  gap: 12px;
+}
+
 button {
-  position: relative;
-  z-index: 100;
-  margin: 10px;
-  padding: 8px 16px;
+  background-color: #4CAF50;
+  color: white;
+  border: none;
+  padding: 10px 20px;
+  border-radius: 8px;
   cursor: pointer;
+  transition: background 0.3s ease;
+}
+
+button:hover {
+  background-color: #45a049;
+}
+
+button:disabled {
+  background-color: #aaa;
+  cursor: not-allowed;
 }
 </style>
